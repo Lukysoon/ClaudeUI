@@ -36,38 +36,15 @@
                 </select>
                 <textarea id="message-input" placeholder="Type your message..." rows="1"></textarea>
             </div>
-            <div class="input-controls">
-                <div class="file-upload">
-                    <input type="file" id="file-input" onchange="handleFileSelect(event)">
-                    <button class="file-upload-btn" onclick="document.getElementById('file-input').click()">Upload File</button>
-                    <span class="file-name" id="file-name"></span>
-                </div>
+            <div class="input-row">
                 <button id="send-button" onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- File Analysis Modal -->
-    <div id="analysis-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">File Analysis</span>
-                <span class="modal-close" onclick="closeAnalysisModal()">&times;</span>
-            </div>
-            <div class="modal-body" id="analysis-content">
-                <!-- Analysis content will be inserted here -->
-            </div>
-            <div class="modal-footer">
-                <button class="modal-button secondary" onclick="closeAnalysisModal()">Cancel</button>
-                <button class="modal-button primary" onclick="createChatFromAnalysis()">Create Chat</button>
+                <textarea id="custom-prompt" placeholder="Custom style prompt (optional)" rows="1"></textarea>
             </div>
         </div>
     </div>
 
     <script>
         let currentChatId = null;
-        let currentFileAnalysis = null;
-        let currentFileName = null;
         
         window.onload = async () => {
             await loadChatList();
@@ -116,58 +93,6 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function showAnalysisModal(analysis, filename) {
-            const modal = document.getElementById('analysis-modal');
-            const content = document.getElementById('analysis-content');
-            
-            // Parse markdown and sanitize HTML
-            const sanitizedContent = DOMPurify.sanitize(marked.parse(analysis));
-            content.innerHTML = sanitizedContent;
-
-            // Apply syntax highlighting to code blocks
-            content.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightBlock(block);
-            });
-            
-            currentFileAnalysis = analysis;
-            currentFileName = filename;
-            modal.style.display = 'block';
-        }
-
-        function closeAnalysisModal() {
-            const modal = document.getElementById('analysis-modal');
-            modal.style.display = 'none';
-            currentFileAnalysis = null;
-            currentFileName = null;
-        }
-
-        async function createChatFromAnalysis() {
-            if (!currentFileAnalysis) return;
-
-            const formData = new FormData();
-            formData.append('analysis', currentFileAnalysis);
-            formData.append('file', new File([], currentFileName));
-            formData.append('style', document.getElementById('style-select').value);
-            if (currentChatId) {
-                formData.append('chat_id', currentChatId);
-            }
-
-            try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                currentChatId = data.chat_id;
-                displayMessages(data.history);
-                await loadChatList();
-                closeAnalysisModal();
-            } catch (error) {
-                console.error('Error creating chat:', error);
-            }
-        }
-
         async function loadChatList() {
             try {
                 const response = await fetch('/api/chats');
@@ -202,6 +127,7 @@
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
+            const customPrompt = document.getElementById('custom-prompt');
             const message = input.value.trim();
             const style = document.getElementById('style-select').value;
             
@@ -220,7 +146,8 @@
                     body: JSON.stringify({
                         chat_id: currentChatId,
                         message: message,
-                        style: style
+                        style: style,
+                        custom_prompt: customPrompt.value.trim()
                     })
                 });
 
@@ -232,35 +159,6 @@
                 console.error('Error sending message:', error);
             } finally {
                 sendButton.disabled = false;
-            }
-        }
-
-        async function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            document.getElementById('file-name').textContent = file.name;
-            const sendButton = document.getElementById('send-button');
-            sendButton.disabled = true;
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('style', document.getElementById('style-select').value);
-
-            try {
-                const response = await fetch('/api/analyze-file', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                showAnalysisModal(data.analysis, data.filename);
-            } catch (error) {
-                console.error('Error analyzing file:', error);
-            } finally {
-                sendButton.disabled = false;
-                document.getElementById('file-name').textContent = '';
-                event.target.value = '';
             }
         }
 
@@ -284,12 +182,20 @@
         function startNewChat() {
             currentChatId = null;
             document.getElementById('chat-container').innerHTML = '';
+            document.getElementById('custom-prompt').value = '';
         }
 
         document.getElementById('message-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
+            }
+        });
+
+        document.getElementById('custom-prompt').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('message-input').focus();
             }
         });
     </script>

@@ -4,17 +4,11 @@ import os
 from dotenv import load_dotenv
 import json
 from datetime import datetime
-import base64
 import uuid
 
 load_dotenv()
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['UPLOAD_FOLDER'] = 'uploads'
-
-# Create uploads directory if it doesn't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize Anthropic client
 client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
@@ -39,6 +33,7 @@ def chat():
     chat_id = data.get('chat_id')
     message = data.get('message')
     style = data.get('style', 'normal')
+    custom_prompt = data.get('custom_prompt', '')
     
     if not chat_id:
         # Generate a unique ID for the chat
@@ -60,8 +55,10 @@ def chat():
         # Create messages for Claude
         messages = [{"role": m["role"], "content": m["content"]} for m in chat['messages']]
         
-        # Add style instruction if not normal
-        if style != 'normal':
+        # Add style instruction if provided
+        if custom_prompt:
+            messages.append({"role": "user", "content": custom_prompt})
+        elif style != 'normal':
             style_prompt = STYLE_PROMPTS[style]
             messages.append({"role": "user", "content": style_prompt})
         
@@ -83,98 +80,6 @@ def chat():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route('/api/analyze-file', methods=['POST'])
-def analyze_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    
-    file = request.files['file']
-    style = request.form.get('style', 'normal')
-    
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-    
-    try:
-        # Save the file
-        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filename)
-        
-        # Read file content
-        with open(filename, 'rb') as f:
-            file_content = f.read()
-            
-        # Convert binary content to base64 for text files
-        try:
-            file_content = file_content.decode('utf-8')
-        except UnicodeDecodeError:
-            file_content = base64.b64encode(file_content).decode('utf-8')
-        
-        # Create analysis request
-        analysis_prompt = f"Please analyze this file named '{file.filename}'. Here's its content:\n\n{file_content}"
-        
-        messages = [{"role": "user", "content": analysis_prompt}]
-        
-        # Add style instruction if not normal
-        if style != 'normal':
-            style_prompt = STYLE_PROMPTS[style]
-            messages.append({"role": "user", "content": style_prompt})
-        
-        # Get Claude's analysis
-        response = client.messages.create(
-            model="claude-3-opus-20240229",
-            max_tokens=1000,
-            messages=messages
-        )
-        
-        analysis = response.content[0].text
-        
-        return jsonify({
-            "analysis": analysis,
-            "filename": file.filename
-        })
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        # Clean up uploaded file
-        if os.path.exists(filename):
-            os.remove(filename)
-
-@app.route('/api/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    
-    file = request.files['file']
-    chat_id = request.form.get('chat_id')
-    style = request.form.get('style', 'normal')
-    analysis = request.form.get('analysis')  # Pre-computed analysis
-    
-    if not analysis:
-        return jsonify({"error": "No analysis provided"}), 400
-    
-    if not chat_id:
-        # Generate a unique ID for the chat
-        chat_id = str(uuid.uuid4())
-        display_name = f"File: {file.filename[:25]}" + ('...' if len(file.filename) > 25 else '')
-        CHATS[chat_id] = {
-            'messages': [],
-            'display_name': display_name
-        }
-    
-    chat = CHATS[chat_id]
-    
-    # Add file analysis to chat history
-    user_message = f"I've uploaded a file named '{file.filename}'. Please analyze it."
-    chat['messages'].append({"role": "user", "content": user_message})
-    chat['messages'].append({"role": "assistant", "content": analysis})
-    
-    return jsonify({
-        "chat_id": chat_id,
-        "response": analysis,
-        "history": chat['messages']
-    })
 
 @app.route('/api/chats', methods=['GET'])
 def get_chats():
