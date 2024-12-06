@@ -30,9 +30,12 @@
         <div class="input-container">
             <div class="input-row">
                 <select class="style-select" id="style-select">
-                    <option value="normal">Normal</option>
                     <option value="concise">Concise</option>
+                    <option value="normal">Normal</option>
                     <option value="explanatory">Explanatory</option>
+                </select>
+                <select class="model-select" id="model-select">
+                    <!-- Models will be populated here -->
                 </select>
                 <textarea id="message-input" placeholder="Type your message..." rows="1"></textarea>
             </div>
@@ -48,6 +51,7 @@
         
         window.onload = async () => {
             await loadChatList();
+            await loadModels();
             // Configure marked.js
             marked.use({
                 mangle: false,
@@ -69,6 +73,25 @@
                 }
             });
         };
+
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                const models = await response.json();
+                const modelSelect = document.getElementById('model-select');
+                modelSelect.innerHTML = '';
+                
+                Object.entries(models).forEach(([name, id]) => {
+                    const option = document.createElement('option');
+
+                    option.value = id;
+                    option.textContent = name;
+                    modelSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading models:', error);
+            }
+        }
 
         function displayMessages(messages) {
             const container = document.getElementById('chat-container');
@@ -130,6 +153,7 @@
             const customPrompt = document.getElementById('custom-prompt');
             const message = input.value.trim();
             const style = document.getElementById('style-select').value;
+            const model = document.getElementById('model-select').value;
             
             if (!message) return;
             
@@ -147,6 +171,7 @@
                         chat_id: currentChatId,
                         message: message,
                         style: style,
+                        model: model,
                         custom_prompt: customPrompt.value.trim()
                     })
                 });

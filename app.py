@@ -16,6 +16,13 @@ client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 # Store chats in memory (in production, you'd want to use a database)
 CHATS = {}
 
+# Available models
+MODELS = {
+    'Claude 3 Opus': 'claude-3-opus-20240229',
+    'Claude 3 Sonnet': 'claude-3-5-sonnet-20241022',
+    'Claude 3 Haiku': 'claude-3-5-haiku-20241022'
+}
+
 # Response style prompts
 STYLE_PROMPTS = {
     'concise': "Please provide a concise and direct response, focusing only on the key points.",
@@ -27,6 +34,10 @@ STYLE_PROMPTS = {
 def home():
     return render_template('index.html')
 
+@app.route('/api/models', methods=['GET'])
+def get_models():
+    return jsonify(MODELS)
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
@@ -34,7 +45,8 @@ def chat():
     message = data.get('message')
     style = data.get('style', 'normal')
     custom_prompt = data.get('custom_prompt', '')
-    
+    model = data.get('model', '')
+
     if not chat_id:
         # Generate a unique ID for the chat
         chat_id = str(uuid.uuid4())

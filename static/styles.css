@@ -16,12 +16,13 @@ body {
     width: 300px;
     min-width: 300px;
     flex-shrink: 0;
-    background-color: #4A4238;
-    color: #F5F4F2;
+    background-color: #E8E5D9;
+    color: #A85537;
     padding: 20px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    font-weight: bold;
 }
 
 .sidebar-buttons {
@@ -33,7 +34,7 @@ body {
 
 .new-chat-btn {
     background-color: #776B5D;
-    color: #F5F4F2;
+    color: #DED8C5;
     border: none;
     padding: 10px;
     border-radius: 5px;
@@ -82,7 +83,7 @@ body {
 }
 
 .delete-chat {
-    color: #F5F4F2;
+    color: #776b5e;
     cursor: pointer;
     opacity: 0.8;
     padding: 0 5px;
@@ -131,10 +132,6 @@ body {
 .message h4 { font-size: 1em; }
 .message h5 { font-size: 0.875em; }
 .message h6 { font-size: 0.85em; }
-
-/* .message p {
-    margin: 1em 0;
-} */
 
 .message ul, .message ol {
     margin: 1em 0;
@@ -249,7 +246,7 @@ body {
     margin-top: -5px;
 }
 
-.style-select {
+.style-select, .model-select {
     padding: 11px;
     border: 1px solid #D1D1D1;
     border-radius: 5px;
@@ -260,7 +257,7 @@ body {
     min-width: 120px;
 }
 
-.style-select:focus {
+.style-select:focus, .model-select:focus {
     outline: none;
     border-color: #776B5D;
 }
