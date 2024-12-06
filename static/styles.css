@@ -132,9 +132,9 @@ body {
 .message h5 { font-size: 0.875em; }
 .message h6 { font-size: 0.85em; }
 
-.message p {
+/* .message p {
     margin: 1em 0;
-}
+} */
 
 .message ul, .message ol {
     margin: 1em 0;
