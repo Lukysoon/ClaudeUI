@@ -1,6 +1,12 @@
+Perquisites
+- wsl
+
+Install Claude UI
+1. clone project to wsl
+2. add `.ENV` file and add `ANTHROPIC_API_KEY={your-key}`
+
 Run Claude AI:
-1. add `.ENV` file and add `ANTHROPIC_API_KEY={your-key}`
-2. run this command `source .venv/bin/activate && python3 app.py`
+1. run this command `source .venv/bin/activate && python3 app.py`
 
 Create .bat file to run it 
 
